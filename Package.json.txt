@@ -1,0 +1,20 @@
+{
+  "name": "plivo-voicemail-webhook",
+  "version": "1.0.0",
+  "description": "Netlify function to handle Plivo voicemail webhooks and send via Mandrill",
+  "main": "index.js",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'"
+  },
+  "keywords": ["netlify", "plivo", "voicemail", "webhook", "mandrill"],
+  "author": "neal@beethovenathome.com",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
