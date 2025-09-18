@@ -1,45 +1,37 @@
 const https = require('https');
-const querystring = require('querystring');
 
-exports.handler = async (event, context) => {
+export default async function handler(req, res) {
   // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
+    console.log('Raw webhook body:', req.body);
+    
     // Parse the incoming Plivo webhook data
-    const plivoData = JSON.parse(event.body);
+    const plivoData = req.body;
+    console.log('Parsed Plivo data:', plivoData);
     
     // Extract relevant information from Plivo webhook
-    const {
-      From: callerNumber,
-      To: receivedNumber,
-      RecordUrl: recordingUrl,
-      TranscriptionText: transcription,
-      CallUUID: callId,
-      RecordFile: recordingFile
-    } = plivoData;
+    // Handle both uppercase and lowercase field names
+    const callerNumber = plivoData.From || plivoData.from;
+    const receivedNumber = plivoData.To || plivoData.to;
+    const recordingUrl = plivoData.RecordUrl || plivoData.record_url;
+    const transcription = plivoData.TranscriptionText || plivoData.transcription_text;
+    const callId = plivoData.CallUUID || plivoData.call_uuid;
 
     // Determine recipient based on the number called
-    // You'll need to customize this mapping
     const recipientMap = {
       '+1234567890': 'sales@beethovenathome.com',
       '+1234567891': 'support@beethovenathome.com',
-      // Add more number mappings as needed
     };
 
     const recipientEmail = recipientMap[receivedNumber] || process.env.TARGET_EMAIL;
 
     if (!recipientEmail) {
       console.error('No recipient found for number:', receivedNumber);
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'No recipient configured for this number' })
-      };
+      return res.status(400).json({ error: 'No recipient configured for this number' });
     }
 
     // Prepare email content
@@ -89,8 +81,7 @@ You can listen to the recording at: ${recordingUrl}
         important: true,
         track_opens: true,
         track_clicks: true,
-        auto_text: true,
-        inline_css: true
+        auto_html: true
       }
     };
 
@@ -99,33 +90,21 @@ You can listen to the recording at: ${recordingUrl}
     
     console.log('Email sent successfully:', response);
 
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        message: 'Voicemail processed successfully',
-        emailSent: true,
-        recipient: recipientEmail
-      })
-    };
+    return res.status(200).json({ 
+      message: 'Voicemail processed successfully',
+      emailSent: true,
+      recipient: recipientEmail
+    });
 
   } catch (error) {
     console.error('Error processing webhook:', error);
     
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        error: 'Internal server error',
-        message: error.message
-      })
-    };
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message
+    });
   }
-};
+}
 
 // Function to send email via Mandrill API
 function sendMandrillEmail(data) {
@@ -151,15 +130,17 @@ function sendMandrillEmail(data) {
       });
       
       res.on('end', () => {
+        let parsedResponse;
         try {
-          const parsedResponse = JSON.parse(responseData);
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            resolve(parsedResponse);
-          } else {
-            reject(new Error(`Mandrill API error: ${responseData}`));
-          }
+          parsedResponse = JSON.parse(responseData);
         } catch (parseError) {
-          reject(new Error(`Failed to parse Mandrill response: ${parseError.message}`));
+          return reject(new Error(`Mandrill non-JSON response: ${responseData}`));
+        }
+
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(parsedResponse);
+        } else {
+          reject(new Error(`Mandrill API error (${res.statusCode}): ${responseData}`));
         }
       });
     });
