@@ -1,18 +1,21 @@
 {
   "name": "plivo-voicemail-webhook",
   "version": "1.0.0",
-  "description": "Netlify function to handle Plivo voicemail webhooks and send via Mandrill",
+  "description": "Plivo voicemail webhook with OpenAI Whisper transcription",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "dev": "netlify dev",
+    "dev": "vercel dev",
     "build": "echo 'No build step required'"
   },
-  "keywords": ["netlify", "plivo", "voicemail", "webhook", "mandrill"],
+  "keywords": ["vercel", "plivo", "voicemail", "webhook", "mandrill", "openai", "whisper"],
   "author": "neal@beethovenathome.com",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "form-data": "^4.0.0"
+  },
   "devDependencies": {
-    "netlify-cli": "^17.0.0"
+    "vercel": "^32.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
